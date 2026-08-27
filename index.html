@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Financial Tracker</title>
-<meta name="description" content="Darren's personal financial tracker dashboard — cash flow, spending, debt, and flagged findings, built from NAB transaction history.">
+<meta name="description" content="Personal financial tracker dashboard — cash flow, spending, debt, and flagged findings, built from NAB transaction history.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -492,7 +492,7 @@
     <section class="section">
       <div class="section-head">
         <h2>Cash flow</h2>
-        <span class="sub">monthly, excluding transfers between Darren's own accounts</span>
+        <span class="sub">monthly, excluding transfers between your own accounts</span>
       </div>
       <div class="chart-grid">
         <div class="card chart-card">
@@ -561,7 +561,7 @@
       <div class="empty-row">
         <div class="card empty-card">
           <div class="e-title">Net worth</div>
-          No snapshots recorded. Give Darren's real asset and debt figures (super, home value, savings, brokerage) to add the first one.
+          No snapshots recorded. Give your real asset and debt figures (super, home value, savings, brokerage) to add the first one.
         </div>
         <div class="card empty-card">
           <div class="e-title">Goals</div>
@@ -688,7 +688,7 @@
     // ---------------- header ----------------
     document.getElementById("page-title").textContent = (data.meta && data.meta.title) || "Financial Tracker";
     document.getElementById("page-sub").textContent =
-      "Darren's cash flow, spending, and debt picture — pulled live from " +
+      "Cash flow, spending, and debt picture — pulled live from " +
       ((data.meta && data.meta.dateRange) || "") +
       " of NAB transaction history, the same data behind Financial Tracker - DH.xlsx.";
     document.getElementById("page-meta").innerHTML =
@@ -696,7 +696,7 @@
       '<div>Updated ' + formatDate(data.meta && data.meta.lastUpdated) + '</div>';
     document.getElementById("page-footer").textContent =
       ((data.meta && data.meta.source) || "Financial Tracker - DH.xlsx") +
-      " · Figures exclude internal transfers between Darren's own accounts unless noted. This page reads live from the tracker's backend — refresh any time for the latest numbers.";
+      " · Figures exclude internal transfers between your own accounts unless noted. This page reads live from the tracker's backend — refresh any time for the latest numbers.";
 
     // ---------------- KPI row ----------------
     var kpiRow = document.getElementById("kpi-row");
