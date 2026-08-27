@@ -1,55 +1,68 @@
 # financial-tracker
 
-A personal financial dashboard for Darren — cash flow, spending, debt, and flagged
-findings, built from NAB transaction history. This repo is a private, version-controlled
-copy of the dashboard; it is **not** published anywhere on the public web.
+Darren's personal financial dashboard — cash flow, spending, debt, and flagged
+findings, built from NAB transaction history. It's a public GitHub Pages site
+behind a PIN gate, backed by a live Google Sheets/Apps Script data source, modeled
+on the PPB GM operations dashboard's Board Report tab pattern.
 
 ## Viewing it
 
-Double-click `index.html` (or open it in a browser via File → Open). No server, no
-build step — it's a single self-contained file. It needs an internet connection the
-first time it loads to fetch its two Google Fonts; everything else works offline.
+Live at: `https://dazinc.github.io/Financial-Tracker/` (once Pages is enabled —
+see "One-time setup" below).
 
-## What it's built from
+Enter the PIN to view. **This is a basic access gate, not encryption** — the same
+pattern as the GM dashboard's Board Report tab. It keeps the numbers from showing
+up on screen to a casual visitor with the link; it does not protect the underlying
+data, which is fetched live from the Apps Script endpoint on every page load. Treat
+the repo, the Pages URL, and the PIN the same way you'd treat a shared-link Google
+Doc: fine for family, not for anywhere the link could end up public.
 
-The numbers here are a snapshot from `Financial Tracker - DH.xlsx` (the master
-workbook in `07 Personal Documents\Financial Planning`), as of the date in the
-dashboard's header. It does not update itself — it's regenerated and recommitted
-each time the workbook has a material update worth reflecting here (ask Claude to
-"update the financial-tracker dashboard" after a review, and it'll rebuild
-`index.html` from the current workbook and hand you the updated file to drop back
-into this folder).
+## How it's built
 
-## Why this lives outside GitHub Pages
+- **Frontend**: `index.html` — a single self-contained static file (HTML/CSS/JS,
+  no build step, no dependencies). On load it shows the PIN gate, then fetches the
+  current dataset from the Apps Script backend and renders the charts, KPIs, and
+  findings client-side.
+- **Backend**: `apps-script/Code.gs`, deployed as a Google Apps Script web app
+  bound to a Google Sheet. `doGet` returns the current dataset as JSON; `doPost`
+  accepts a full dataset replacement, gated by a shared `WRITE_SECRET` so random
+  requests to the URL can't overwrite the data. Claude pushes updates here
+  whenever the source workbook changes — ask Claude to "update the financial
+  tracker dashboard" after a review, and it'll rebuild the payload from
+  `Financial Tracker - DH.xlsx` and POST it to the endpoint. No local file changes
+  or redeploys are needed for a data-only refresh; `index.html` just fetches
+  whatever's live in the Sheet.
+- **Data**: the Sheet is the source of truth for what's currently displayed. The
+  workbook (`07 Personal Documents\Financial Planning\Financial Tracker - DH.xlsx`)
+  is the source of truth for what *should* be displayed — the two are kept in sync
+  by Claude via the steps above, not automatically.
 
-GitHub Pages sites are public URLs — anyone with the link can open them, paid-plan
-restrictions aside. Since this dashboard has real balances, spending, and debt
-figures, it's kept as a private repo with no Pages site: version history and backup,
-without a public web address.
+## One-time setup: making the repo public and enabling Pages
 
-## One-time setup: pushing this to GitHub
+This repo currently needs to be flipped from private to public, and Pages needs to
+be turned on — both are account-level GitHub settings Claude can't do on your
+behalf.
 
-You'll need to do the actual GitHub authentication yourself — that's not something
-that can be done on your behalf. From this folder:
+1. On GitHub, go to **Settings → General**, scroll to "Danger Zone," and change
+   visibility to **Public**.
+2. Go to **Settings → Pages**, set **Source** to "Deploy from a branch," branch
+   `main`, folder `/ (root)`, and save.
+3. GitHub will publish the site at `https://dazinc.github.io/Financial-Tracker/`
+   within a minute or two.
 
-```bash
-# 1. Install the GitHub CLI if you don't already have it:
-#    https://cli.github.com
+## Day-to-day updates
 
-# 2. Log in (opens a browser, you approve it there):
-gh auth login
-
-# 3. Create the private repo and push this commit:
-gh repo create financial-tracker --private --source=. --remote=origin --push
-```
-
-That's it — from then on, whenever this folder's contents are updated, push again with:
+Pushing code changes (to `index.html` or `Code.gs`) works like any git repo:
 
 ```bash
 git add -A
-git commit -m "Update dashboard"
+git commit -m "..."
 git push
 ```
+
+Pushing a **data-only** refresh (new month's numbers, updated findings) doesn't
+touch git at all — it's a POST to the Apps Script endpoint with the `WRITE_SECRET`.
+Ask Claude to do this after updating the workbook.
 
 ## Note on OneDrive
 
