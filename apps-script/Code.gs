@@ -36,7 +36,7 @@ function doGet(e) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var payload = {
     meta: readKeyValueSheet_(ss, SHEET_NAMES.meta),
-    kpis: readKeyValueSheet_(ss, SHEET_NAMES.kpis),
+    kpis: readTableSheet_(ss, SHEET_NAMES.kpis),
     cashflow: readTableSheet_(ss, SHEET_NAMES.cashflow),
     categories: readTableSheet_(ss, SHEET_NAMES.categories),
     debtLatitude: readTableSheet_(ss, SHEET_NAMES.debtLatitude),
@@ -66,7 +66,7 @@ function doPost(e) {
   var data = body.data || {};
 
   if (data.meta) writeKeyValueSheet_(ss, SHEET_NAMES.meta, data.meta);
-  if (data.kpis) writeKeyValueSheet_(ss, SHEET_NAMES.kpis, data.kpis);
+  if (data.kpis) writeTableSheet_(ss, SHEET_NAMES.kpis, data.kpis);
   if (data.cashflow) writeTableSheet_(ss, SHEET_NAMES.cashflow, data.cashflow);
   if (data.categories) writeTableSheet_(ss, SHEET_NAMES.categories, data.categories);
   if (data.debtLatitude) writeTableSheet_(ss, SHEET_NAMES.debtLatitude, data.debtLatitude);
@@ -100,7 +100,16 @@ function writeTableSheet_(ss, name, rows) {
   rows.forEach(function (row) {
     values.push(headers.map(function (h) { return row[h] === undefined ? '' : row[h]; }));
   });
-  sheet.getRange(1, 1, values.length, headers.length).setValues(values);
+  var numRows = values.length;
+  // Force text format on any column whose values are strings, BEFORE writing them,
+  // so Sheets doesn't silently reinterpret things like "Jul 25" as a date or
+  // "$4,415" as a number. Numeric columns are left alone so they stay numbers.
+  headers.forEach(function (h, colIdx) {
+    if (typeof rows[0][h] === 'string') {
+      sheet.getRange(1, colIdx + 1, numRows, 1).setNumberFormat('@');
+    }
+  });
+  sheet.getRange(1, 1, numRows, headers.length).setValues(values);
 }
 
 function readTableSheet_(ss, name) {
@@ -123,7 +132,11 @@ function writeKeyValueSheet_(ss, name, obj) {
   sheet.clearContents();
   var rows = Object.keys(obj).map(function (k) { return [k, obj[k]]; });
   if (rows.length === 0) return;
-  sheet.getRange(1, 1, rows.length, 2).setValues(rows);
+  // Key/value sheets are always plain display strings — force text format so
+  // Sheets doesn't reinterpret a value like "2026-08-27" as a date.
+  var range = sheet.getRange(1, 1, rows.length, 2);
+  range.setNumberFormat('@');
+  range.setValues(rows);
 }
 
 function readKeyValueSheet_(ss, name) {

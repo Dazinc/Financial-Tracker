@@ -89,6 +89,104 @@
     padding: 40px 24px 80px;
   }
 
+  /* ---------- PIN gate ---------- */
+  .pin-gate {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .pin-card {
+    width: 100%;
+    max-width: 340px;
+    background: var(--surface-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 28px 28px;
+    text-align: center;
+  }
+  .pin-icon {
+    width: 34px;
+    height: 34px;
+    margin: 0 auto 14px;
+    color: var(--text-muted);
+  }
+  .pin-icon svg { width: 100%; height: 100%; }
+  .pin-card h1 {
+    font-family: "Fraunces", Georgia, serif;
+    font-weight: 600;
+    font-size: 21px;
+    margin: 0 0 6px;
+  }
+  .pin-sub {
+    margin: 0 0 20px;
+    color: var(--text-secondary);
+    font-size: 13px;
+  }
+  .pin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .pin-input {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 20px;
+    letter-spacing: 0.5em;
+    text-align: center;
+    padding: 12px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-page);
+    color: var(--text-primary);
+    width: 100%;
+  }
+  .pin-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .pin-submit {
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+  }
+  .pin-submit:hover { opacity: 0.92; }
+  .pin-error {
+    margin: 12px 0 0;
+    color: var(--critical);
+    font-size: 12.5px;
+  }
+  .pin-note {
+    margin: 18px 0 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  /* ---------- load status ---------- */
+  .load-status {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13.5px;
+  }
+  .retry-btn {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 14px;
+    margin-left: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    cursor: pointer;
+  }
+  .retry-btn:hover { border-color: var(--accent); color: var(--accent); }
+
   /* ---------- header ---------- */
   header.top {
     display: flex;
@@ -183,13 +281,6 @@
     font-size: 12px;
     color: var(--text-secondary);
     line-height: 1.4;
-  }
-  .status-dot {
-    display: inline-block;
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    margin-right: 6px;
-    vertical-align: middle;
   }
   .kpi.good .value { color: var(--good); }
   .kpi.warning .value { color: var(--warning); }
@@ -362,113 +453,130 @@
   }
 </style>
 
-<div class="wrap">
+<div id="pin-gate" class="pin-gate">
+  <div class="pin-card">
+    <div class="pin-icon">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="16" r="1.4" fill="currentColor"/></svg>
+    </div>
+    <h1>Financial Tracker</h1>
+    <p class="pin-sub">Enter your PIN to view.</p>
+    <form id="pin-form" class="pin-form" autocomplete="off">
+      <input id="pin-input" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="••••••" aria-label="PIN">
+      <button type="submit" class="pin-submit">Unlock</button>
+    </form>
+    <p id="pin-error" class="pin-error" hidden>Incorrect PIN — try again.</p>
+    <p class="pin-note">This is a basic access gate, not encryption — it just keeps the numbers from showing up on screen without the PIN.</p>
+  </div>
+</div>
+
+<div class="wrap" id="dashboard-wrap" hidden>
 
   <header class="top">
     <div class="title-block">
-      <h1>Financial Tracker</h1>
-      <p>Darren's cash flow, spending, and debt picture — built from 14 months of NAB transaction history (Jul 2025 – Aug 2026), the same data behind <span style="font-family:'IBM Plex Mono',monospace; font-size:12.5px;">Financial Tracker&nbsp;-&nbsp;DH.xlsx</span>.</p>
+      <h1 id="page-title">Financial Tracker</h1>
+      <p id="page-sub"></p>
     </div>
-    <div class="meta">
-      <div><strong>2,998</strong> transactions · 14 months</div>
-      <div>Narrative last updated 26 Aug 2026</div>
-    </div>
+    <div class="meta" id="page-meta"></div>
   </header>
 
-  <!-- ================= KPI ROW ================= -->
-  <section class="section">
-    <div class="kpi-row" id="kpi-row"></div>
-  </section>
+  <div id="load-status" class="load-status" hidden></div>
 
-  <!-- ================= CASH FLOW ================= -->
-  <section class="section">
-    <div class="section-head">
-      <h2>Cash flow</h2>
-      <span class="sub">monthly, excluding transfers between Darren's own accounts</span>
-    </div>
-    <div class="chart-grid">
-      <div class="card chart-card">
-        <div class="chart-title">Net position by month</div>
-        <div class="chart-svg-wrap"><svg class="chart" id="chart-net" viewBox="0 0 620 260"></svg></div>
-        <div class="legend-row">
-          <span class="legend-item"><span class="legend-swatch" style="background:var(--good)"></span>Surplus month</span>
-          <span class="legend-item"><span class="legend-swatch" style="background:var(--critical)"></span>Deficit month</span>
+  <div id="dashboard-body" hidden>
+
+    <!-- ================= KPI ROW ================= -->
+    <section class="section">
+      <div class="kpi-row" id="kpi-row"></div>
+    </section>
+
+    <!-- ================= CASH FLOW ================= -->
+    <section class="section">
+      <div class="section-head">
+        <h2>Cash flow</h2>
+        <span class="sub">monthly, excluding transfers between Darren's own accounts</span>
+      </div>
+      <div class="chart-grid">
+        <div class="card chart-card">
+          <div class="chart-title">Net position by month</div>
+          <div class="chart-svg-wrap"><svg class="chart" id="chart-net" viewBox="0 0 620 260"></svg></div>
+          <div class="legend-row">
+            <span class="legend-item"><span class="legend-swatch" style="background:var(--good)"></span>Surplus month</span>
+            <span class="legend-item"><span class="legend-swatch" style="background:var(--critical)"></span>Deficit month</span>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-title">End-of-month balance</div>
+          <div class="chart-svg-wrap"><svg class="chart" id="chart-balance" viewBox="0 0 560 260"></svg></div>
+          <div class="chart-note">Red markers = months containing at least one day the account went negative. Hover for detail.</div>
         </div>
       </div>
-      <div class="card chart-card">
-        <div class="chart-title">End-of-month balance</div>
-        <div class="chart-svg-wrap"><svg class="chart" id="chart-balance" viewBox="0 0 560 260"></svg></div>
-        <div class="chart-note">Red markers = months containing at least one day the account went negative. Hover for detail.</div>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ================= SPENDING ================= -->
-  <section class="section">
-    <div class="section-head">
-      <h2>Where it goes</h2>
-      <span class="sub">top 10 categories by 14-month total spend</span>
-    </div>
-    <div class="card chart-card">
-      <div class="chart-svg-wrap"><svg class="chart" id="chart-categories" viewBox="0 0 1100 340"></svg></div>
-      <div class="chart-note">* "Transfers out" mixes car-finance debt repayments with one-off family transfers — see Data quality finding below.</div>
-    </div>
-  </section>
-
-  <!-- ================= DEBT ================= -->
-  <section class="section">
-    <div class="section-head">
-      <h2>Debt repayments</h2>
-      <span class="sub">the two recurring loans visible in transaction data</span>
-    </div>
-    <div class="two-col">
-      <div class="card chart-card">
-        <div class="chart-title">Latitude personal loan</div>
-        <div class="chart-svg-wrap"><svg class="chart" id="chart-latitude" viewBox="0 0 540 190"></svg></div>
-        <div class="chart-note">Ongoing — ~$856/mo average, ~$11,991 repaid over 14 months. Remaining balance unknown.</div>
+    <!-- ================= SPENDING ================= -->
+    <section class="section">
+      <div class="section-head">
+        <h2>Where it goes</h2>
+        <span class="sub">top categories by 14-month total spend</span>
       </div>
       <div class="card chart-card">
-        <div class="chart-title">Car finance (Powertorque)</div>
-        <div class="chart-svg-wrap"><svg class="chart" id="chart-car" viewBox="0 0 540 190"></svg></div>
-        <div class="chart-note">Stops after Mar 2026 — looks paid off. ~$575–720/mo freed up since.</div>
+        <div class="chart-svg-wrap"><svg class="chart" id="chart-categories" viewBox="0 0 1100 340"></svg></div>
+        <div class="chart-note">* "Transfers out" mixes car-finance debt repayments with one-off family transfers — see Data quality finding below.</div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- ================= FINDINGS ================= -->
-  <section class="section">
-    <div class="section-head">
-      <h2>Findings</h2>
-      <span class="sub">mirrors the Narrative tab in the workbook — updates each time it's reviewed</span>
-    </div>
-    <div class="findings-grid" id="findings-grid"></div>
-  </section>
+    <!-- ================= DEBT ================= -->
+    <section class="section">
+      <div class="section-head">
+        <h2>Debt repayments</h2>
+        <span class="sub">the two recurring loans visible in transaction data</span>
+      </div>
+      <div class="two-col">
+        <div class="card chart-card">
+          <div class="chart-title">Latitude personal loan</div>
+          <div class="chart-svg-wrap"><svg class="chart" id="chart-latitude" viewBox="0 0 540 190"></svg></div>
+          <div class="chart-note">Ongoing — ~$856/mo average, ~$11,991 repaid over 14 months. Remaining balance unknown.</div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-title">Car finance (Powertorque)</div>
+          <div class="chart-svg-wrap"><svg class="chart" id="chart-car" viewBox="0 0 540 190"></svg></div>
+          <div class="chart-note">Stops after Mar 2026 — looks paid off. ~$575–720/mo freed up since.</div>
+        </div>
+      </div>
+    </section>
 
-  <!-- ================= NOT YET TRACKED ================= -->
-  <section class="section">
-    <div class="section-head">
-      <h2>Not yet tracked</h2>
-      <span class="sub">these modules exist in the workbook but have no data yet</span>
-    </div>
-    <div class="empty-row">
-      <div class="card empty-card">
-        <div class="e-title">Net worth</div>
-        No snapshots recorded. Give Darren's real asset and debt figures (super, home value, savings, brokerage) to add the first one.
+    <!-- ================= FINDINGS ================= -->
+    <section class="section">
+      <div class="section-head">
+        <h2>Findings</h2>
+        <span class="sub">mirrors the Narrative tab in the workbook — updates each time it's reviewed</span>
       </div>
-      <div class="card empty-card">
-        <div class="e-title">Goals</div>
-        No savings or retirement goals set. Nothing to track progress against until one is defined.
-      </div>
-      <div class="card empty-card">
-        <div class="e-title">Debts — full detail</div>
-        Repayments are visible in transactions, but balance, interest rate, and payoff priority aren't recorded for Latitude or any other debt yet.
-      </div>
-    </div>
-  </section>
+      <div class="findings-grid" id="findings-grid"></div>
+    </section>
 
-  <footer class="foot">
-    Source: Financial Tracker - DH.xlsx (local master workbook) · NAB transaction exports, Jul 2025 – Aug 2026 · Figures exclude internal transfers between Darren's own accounts unless noted. This page is a snapshot — regenerate it after the workbook updates rather than treating it as live.
-  </footer>
+    <!-- ================= NOT YET TRACKED ================= -->
+    <section class="section">
+      <div class="section-head">
+        <h2>Not yet tracked</h2>
+        <span class="sub">these modules exist in the workbook but have no data yet</span>
+      </div>
+      <div class="empty-row">
+        <div class="card empty-card">
+          <div class="e-title">Net worth</div>
+          No snapshots recorded. Give Darren's real asset and debt figures (super, home value, savings, brokerage) to add the first one.
+        </div>
+        <div class="card empty-card">
+          <div class="e-title">Goals</div>
+          No savings or retirement goals set. Nothing to track progress against until one is defined.
+        </div>
+        <div class="card empty-card">
+          <div class="e-title">Debts — full detail</div>
+          Repayments are visible in transactions, but balance, interest rate, and payoff priority aren't recorded for Latitude or any other debt yet.
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot" id="page-footer"></footer>
+
+  </div>
 
 </div>
 
@@ -478,117 +586,25 @@
 (function () {
   "use strict";
 
+  var ENDPOINT = "https://script.google.com/macros/s/AKfycbyytiu8ILhNB8iKhtXABL4V52mBL6XHPTJ6SbBu45k9e0iZiGG4KsSstTEzW3F65T3E/exec";
+  var PIN = "008321";
+  var SS_KEY = "ft_unlocked_v1";
+
   var css = getComputedStyle(document.documentElement);
   function tok(name) { return css.getPropertyValue(name).trim(); }
-
-  var months = ["Jul 25","Aug 25","Sep 25","Oct 25","Nov 25","Dec 25","Jan 26","Feb 26","Mar 26","Apr 26","May 26","Jun 26","Jul 26","Aug 26"];
-
-  var cashflow = [
-    {m:"Jul 25", income:7994.38,  outgoing:-7684.20,  net:310.18,   balance:113.27},
-    {m:"Aug 25", income:6805.20,  outgoing:-6866.95,  net:-61.75,   balance:716.67},
-    {m:"Sep 25", income:11308.63, outgoing:-9327.30,  net:1981.33,  balance:2823.31},
-    {m:"Oct 25", income:9649.30,  outgoing:-10151.27, net:-501.97,  balance:1835.37},
-    {m:"Nov 25", income:8178.20,  outgoing:-8066.89,  net:111.31,   balance:1628.57},
-    {m:"Dec 25", income:7239.93,  outgoing:-7868.85,  net:-628.92,  balance:606.70},
-    {m:"Jan 26", income:14517.41, outgoing:-14034.81, net:482.60,   balance:762.91},
-    {m:"Feb 26", income:7029.10,  outgoing:-6536.91,  net:492.19,   balance:829.79},
-    {m:"Mar 26", income:16378.69, outgoing:-13472.23, net:2906.46,  balance:3316.03},
-    {m:"Apr 26", income:8496.09,  outgoing:-9910.49,  net:-1414.40, balance:2361.07},
-    {m:"May 26", income:8275.20,  outgoing:-7669.15,  net:606.05,   balance:2176.29},
-    {m:"Jun 26", income:8171.25,  outgoing:-8700.93,  net:-529.68,  balance:874.81},
-    {m:"Jul 26", income:8679.56,  outgoing:-8624.88,  net:54.68,    balance:470.87},
-    {m:"Aug 26", income:7650.11,  outgoing:-7043.09,  net:607.02,   balance:197.35}
-  ];
-
-  var negByMonth = {
-    "Jul 25": {days:2, txns:8,  min:-153.04},
-    "Sep 25": {days:2, txns:3,  min:-66.77},
-    "Nov 25": {days:1, txns:4,  min:-44.66},
-    "Dec 25": {days:2, txns:7,  min:-161.01},
-    "Jul 26": {days:1, txns:2,  min:-24.13},
-    "Aug 26": {days:1, txns:17, min:-430.34}
-  };
-
-  var categories = [
-    {name:"Groceries",               amount:30781.54},
-    {name:"Transfers out*",          amount:16249.66},
-    {name:"Loans (Latitude)",        amount:11991.07},
-    {name:"Restaurants & takeaway",  amount:8755.77},
-    {name:"Fuel",                    amount:8394.24},
-    {name:"Education",               amount:7527.04},
-    {name:"Utilities",               amount:6577.65},
-    {name:"Phone & internet",        amount:5330.25},
-    {name:"Other shopping",          amount:5101.62},
-    {name:"Insurance",               amount:4315.04}
-  ];
-
-  var latitude = [397.15,229.72,407.15,279.72,229.72,337.15,289.72,285.72,347.15,233.32,233.32,292.37,234.28,235.84];
-  var car      = [575.64,575.64,719.55,575.64,575.64,719.55,575.64,575.64,129.51,0,0,0,0,0];
-
-  var findings = [
-    {sev:"critical", cat:"Cash Flow",    status:"Open", title:"Account balance went negative repeatedly",
-     detail:"9 separate days across 14 months, worst and most frequent in Aug 2026 (17 transactions while negative, low of −$430.34). Trend is worsening, not improving. Check whether this is an authorised overdraft facility or unintended."},
-    {sev:"watch",    cat:"Cash Flow",    status:"Open", title:"Net surplus is thin and inconsistent",
-     detail:"$4,415 net over 14 months (~$315/mo average), but 5 of 14 months ran net negative (Aug/Oct/Dec 2025, Apr/Jun 2026)."},
-    {sev:"critical", cat:"Savings",      status:"Open", title:"No savings or investment category anywhere in transaction data",
-     detail:"Any monthly surplus has no protected destination — it stays in the same account that's been running negative, rather than being set aside."},
-    {sev:"watch",    cat:"Debt",         status:"Open", title:"Latitude personal loan — ongoing weekly repayments",
-     detail:"~$11,991 repaid over 14 months (~$856/mo, 84 payments). Remaining balance and payoff date unknown — add to Debts tab when known."},
-    {sev:"positive", cat:"Debt",         status:"Open", title:"Car finance (Powertorque) appears paid off",
-     detail:"~$5,022 repaid through Mar 2026, then payments stop — loan looks cleared, freeing ~$575–720/mo. Worth checking where that freed-up cash has been going, since Aug 2026 was still the worst overdraft month of the period."},
-    {sev:"watch",    cat:"Data Quality", status:"Open", title:"Recurring car finance payments miscategorized as ‘Transfers out’",
-     detail:"Same category also holds one-off family transfers (gifts, kids' expenses, transfers to Amber), which hides the true committed-debt figure. Recommend a dedicated category for it."},
-    {sev:"watch",    cat:"Data Quality", status:"Open", title:"$1,865 across 65 transactions sitting Uncategorised",
-     detail:"Worth a cleanup pass so the Budget tab's totals aren't missing this spend."},
-    {sev:"watch",    cat:"Spending",     status:"Open", title:"Fixed costs are a meaningful share of spend",
-     detail:"Phone & internet ~$381/mo, Utilities ~$470/mo, Insurance ~$308/mo. None alarming alone but worth a rate check against current market offers."},
-    {sev:"watch",    cat:"Spending",     status:"Open", title:"Recurring small lottery spend (The Lott)",
-     detail:"~$113 total over 11 transactions across 14 months. Not a dollar concern at this size — flagged as a recurring pattern, not a problem yet."}
-  ];
 
   var fmt0 = new Intl.NumberFormat("en-AU", {style:"currency", currency:"AUD", maximumFractionDigits:0});
   var fmt2 = new Intl.NumberFormat("en-AU", {style:"currency", currency:"AUD", maximumFractionDigits:2});
   function money(v, decimals) { return (decimals ? fmt2 : fmt0).format(v); }
   function signed(v, decimals) { var s = v < 0 ? "−" : "+"; return s + money(Math.abs(v), decimals).replace("$","$"); }
-
-  // ---------------- KPI row ----------------
-  var totalNet = cashflow.reduce(function(a,c){return a+c.net;}, 0);
-  var negMonths = cashflow.filter(function(c){return c.net < 0;}).length;
-  var overdraftDays = Object.keys(negByMonth).reduce(function(a,k){return a+negByMonth[k].days;},0);
-  var overdraftMonths = Object.keys(negByMonth).length;
-
-  var kpis = [
-    {label:"14-month net", value: signed(totalNet), sub: money(totalNet/14)+"/mo average", tone:"good"},
-    {label:"Months net-negative", value: negMonths+" of 14", sub: Math.round(negMonths/14*100)+"% of months", tone:"warning"},
-    {label:"Overdraft events", value: overdraftDays+" days", sub: "across "+overdraftMonths+" months — worst Aug’26, −$430", tone:"critical"},
-    {label:"Uncategorised spend", value: money(1865), sub: "65 transactions", tone:"warning"},
-    {label:"Savings tracked", value: "$0", sub: "no protected savings category found", tone:"critical"}
-  ];
-
-  var kpiRow = document.getElementById("kpi-row");
-  kpis.forEach(function(k){
-    var el = document.createElement("div");
-    el.className = "card kpi " + k.tone;
-    el.innerHTML =
-      '<div class="label">'+k.label+'</div>' +
-      '<div class="value">'+k.value+'</div>' +
-      '<div class="sub">'+k.sub+'</div>';
-    kpiRow.appendChild(el);
-  });
-
-  // ---------------- shared tooltip ----------------
-  var tooltip = document.getElementById("tooltip");
-  function showTooltip(evt, html) {
-    tooltip.innerHTML = html;
-    tooltip.style.left = evt.clientX + "px";
-    tooltip.style.top = evt.clientY + "px";
-    tooltip.style.opacity = "1";
+  function formatDate(iso) {
+    if (!iso) return "";
+    var parts = String(iso).split("-");
+    if (parts.length !== 3) return String(iso);
+    var d = new Date(Date.UTC(+parts[0], +parts[1]-1, +parts[2]));
+    var monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return d.getUTCDate() + " " + monthNames[d.getUTCMonth()] + " " + d.getUTCFullYear();
   }
-  function moveTooltip(evt) {
-    tooltip.style.left = evt.clientX + "px";
-    tooltip.style.top = evt.clientY + "px";
-  }
-  function hideTooltip() { tooltip.style.opacity = "0"; }
 
   var NS = "http://www.w3.org/2000/svg";
   function svg(tag, attrs) {
@@ -597,220 +613,338 @@
     return el;
   }
 
-  // ---------------- chart: diverging bar (net by month) ----------------
-  (function () {
-    var el = document.getElementById("chart-net");
-    var W = 620, H = 260, padL = 44, padR = 8, padT = 10, padB = 28;
-    var innerW = W - padL - padR, innerH = H - padT - padB;
-    var maxAbs = Math.max.apply(null, cashflow.map(function(c){return Math.abs(c.net);}));
-    maxAbs = Math.ceil(maxAbs / 500) * 500;
-    var zeroY = padT + innerH / 2;
-    var scaleY = (innerH / 2) / maxAbs;
-    var bw = innerW / cashflow.length;
-    var barW = Math.min(28, bw * 0.6);
+  // ---------------- PIN gate ----------------
+  var pinGate = document.getElementById("pin-gate");
+  var pinForm = document.getElementById("pin-form");
+  var pinInput = document.getElementById("pin-input");
+  var pinError = document.getElementById("pin-error");
+  var dashWrap = document.getElementById("dashboard-wrap");
 
-    // gridlines
-    [maxAbs, maxAbs/2, 0, -maxAbs/2, -maxAbs].forEach(function(v){
-      var y = zeroY - v * scaleY;
-      el.appendChild(svg("line", {x1:padL, x2:W-padR, y1:y, y2:y, class: v===0 ? "baseline-line":"grid-line"}));
-      var t = svg("text", {x:padL-8, y:y+3, class:"axis-label", "text-anchor":"end"});
-      t.textContent = v === 0 ? "$0" : (v>0?"+":"−")+"$"+Math.abs(v/1000).toFixed(v%1000===0?0:1)+"k";
-      el.appendChild(t);
-    });
+  function unlock() {
+    pinGate.style.display = "none";
+    dashWrap.hidden = false;
+    loadDashboard();
+  }
 
-    cashflow.forEach(function(c, i){
-      var cx = padL + bw*i + bw/2;
-      var h = Math.abs(c.net) * scaleY;
-      var y = c.net >= 0 ? zeroY - h : zeroY;
-      var color = c.net >= 0 ? tok("--good") : tok("--critical");
-      var rect = svg("rect", {x: cx-barW/2, y:y, width:barW, height:Math.max(h,1.5), rx:3, fill:color, opacity:0.92});
-      rect.style.cursor = "pointer";
-      el.appendChild(rect);
+  try {
+    if (sessionStorage.getItem(SS_KEY) === "1") unlock();
+  } catch (e) { /* private browsing etc — just fall through to the PIN screen */ }
 
-      rect.addEventListener("mousemove", function(evt){
-        showTooltip(evt,
-          '<div class="tt-title">'+c.m+'</div>' +
-          '<table>' +
-          '<tr><td class="k">Income</td><td>'+money(c.income)+'</td></tr>' +
-          '<tr><td class="k">Outgoing</td><td>'+money(c.outgoing)+'</td></tr>' +
-          '<tr><td class="k">Net</td><td>'+signed(c.net)+'</td></tr>' +
-          '</table>');
-      });
-      rect.addEventListener("mouseleave", hideTooltip);
+  pinForm.addEventListener("submit", function (evt) {
+    evt.preventDefault();
+    if (pinInput.value === PIN) {
+      try { sessionStorage.setItem(SS_KEY, "1"); } catch (e) {}
+      pinError.hidden = true;
+      unlock();
+    } else {
+      pinError.hidden = false;
+      pinInput.value = "";
+      pinInput.focus();
+    }
+  });
 
-      if (i % 2 === 0 || cashflow.length <= 8) {
-        var lbl = svg("text", {x:cx, y:H-8, class:"axis-label", "text-anchor":"middle"});
-        lbl.textContent = c.m;
-        el.appendChild(lbl);
-      }
-    });
-  })();
+  // ---------------- fetch + render ----------------
+  var loadStatus = document.getElementById("load-status");
+  var dashBody = document.getElementById("dashboard-body");
 
-  // ---------------- chart: balance trend line ----------------
-  (function () {
-    var el = document.getElementById("chart-balance");
-    var W = 560, H = 260, padL = 44, padR = 12, padT = 14, padB = 28;
-    var innerW = W - padL - padR, innerH = H - padT - padB;
-    var maxV = Math.max.apply(null, cashflow.map(function(c){return c.balance;}));
-    var minV = Math.min(0, Math.min.apply(null, cashflow.map(function(c){return c.balance;})));
-    maxV = Math.ceil(maxV/500)*500;
-    minV = Math.floor(minV/500)*500;
-    var scaleY = innerH / (maxV - minV);
-    function yOf(v){ return padT + innerH - (v - minV) * scaleY; }
-    var stepX = innerW / (cashflow.length - 1);
-    function xOf(i){ return padL + stepX*i; }
-
-    [maxV, maxV/2, 0].forEach(function(v){
-      var y = yOf(v);
-      el.appendChild(svg("line", {x1:padL, x2:W-padR, y1:y, y2:y, class: v===0 ? "baseline-line":"grid-line"}));
-      var t = svg("text", {x:padL-8, y:y+3, class:"axis-label", "text-anchor":"end"});
-      t.textContent = "$"+(v/1000).toFixed(v!==0 && Math.abs(v)<1000?1:0)+(v!==0?"k":"");
-      el.appendChild(t);
-    });
-
-    var pts = cashflow.map(function(c,i){ return [xOf(i), yOf(c.balance)]; });
-    var path = "M" + pts.map(function(p){return p[0].toFixed(1)+","+p[1].toFixed(1);}).join(" L");
-    el.appendChild(svg("path", {d:path, fill:"none", stroke:tok("--accent"), "stroke-width":2, "stroke-linejoin":"round", "stroke-linecap":"round"}));
-
-    cashflow.forEach(function(c, i){
-      var isNeg = !!negByMonth[c.m];
-      var r = isNeg ? 5 : 3;
-      var color = isNeg ? tok("--critical") : tok("--accent");
-      var dot = svg("circle", {cx:pts[i][0], cy:pts[i][1], r:r, fill:color, stroke:tok("--surface-card"), "stroke-width":1.5});
-      dot.style.cursor = "pointer";
-      el.appendChild(dot);
-      dot.addEventListener("mousemove", function(evt){
-        var extra = "";
-        if (isNeg) {
-          var n = negByMonth[c.m];
-          extra = '<tr><td class="k">Overdrawn</td><td>'+n.days+' day'+(n.days>1?'s':'')+', '+n.txns+' txns</td></tr>' +
-                  '<tr><td class="k">Lowest</td><td>'+signed(n.min,true)+'</td></tr>';
+  function loadDashboard() {
+    dashBody.hidden = true;
+    loadStatus.hidden = false;
+    loadStatus.textContent = "Loading your data…";
+    fetch(ENDPOINT, {cache: "no-store"})
+      .then(function (r) {
+        if (!r.ok) throw new Error("server returned " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data || !data.cashflow || !data.cashflow.length) {
+          throw new Error("no data yet — the tracker hasn't been seeded");
         }
-        showTooltip(evt,
-          '<div class="tt-title">'+c.m+'</div>' +
-          '<table><tr><td class="k">Balance</td><td>'+money(c.balance,true)+'</td></tr>'+extra+'</table>');
+        loadStatus.hidden = true;
+        dashBody.hidden = false;
+        render(data);
+      })
+      .catch(function (err) {
+        loadStatus.innerHTML = "Couldn't load your data — " + err.message + ".";
+        var retry = document.createElement("button");
+        retry.className = "retry-btn";
+        retry.textContent = "Retry";
+        retry.addEventListener("click", loadDashboard);
+        loadStatus.appendChild(retry);
       });
-      dot.addEventListener("mouseleave", hideTooltip);
-      if (i % 2 === 0) {
-        var lbl = svg("text", {x:pts[i][0], y:H-8, class:"axis-label", "text-anchor":"middle"});
-        lbl.textContent = c.m;
-        el.appendChild(lbl);
-      }
-    });
-  })();
+  }
 
-  // ---------------- chart: category horizontal bars ----------------
-  (function () {
-    var el = document.getElementById("chart-categories");
-    var W = 1100, H = 340, padL = 190, padR = 90, padT = 10, padB = 10;
-    var innerW = W - padL - padR;
-    var rowH = (H - padT - padB) / categories.length;
-    var maxV = Math.max.apply(null, categories.map(function(c){return c.amount;}));
-    var scaleX = innerW / maxV;
+  function render(data) {
+    var months = data.cashflow.map(function (c) { return c.m; });
+    var cashflow = data.cashflow;
+    var categories = data.categories || [];
+    var latitude = (data.debtLatitude || []).map(function (d) { return d.payment; });
+    var car = (data.debtCar || []).map(function (d) { return d.payment; });
+    var findings = data.findings || [];
+    var kpis = data.kpis || [];
+    var negByMonth = {};
+    (data.negativeEvents || []).forEach(function (n) { negByMonth[n.month] = n; });
 
-    // sequential blue ramp, darkest for largest
-    var ramp = ["#0d366b","#104281","#184f95","--accent","#3987e5","#5598e7","#6da7ec","#86b6ef","#9ec5f4","#b7d3f6"];
-    // use accent token for a couple slots dynamically
-    var accentHex = tok("--accent");
+    // ---------------- header ----------------
+    document.getElementById("page-title").textContent = (data.meta && data.meta.title) || "Financial Tracker";
+    document.getElementById("page-sub").textContent =
+      "Darren's cash flow, spending, and debt picture — pulled live from " +
+      ((data.meta && data.meta.dateRange) || "") +
+      " of NAB transaction history, the same data behind Financial Tracker - DH.xlsx.";
+    document.getElementById("page-meta").innerHTML =
+      '<div><strong>' + cashflow.length + '</strong> months tracked</div>' +
+      '<div>Updated ' + formatDate(data.meta && data.meta.lastUpdated) + '</div>';
+    document.getElementById("page-footer").textContent =
+      ((data.meta && data.meta.source) || "Financial Tracker - DH.xlsx") +
+      " · Figures exclude internal transfers between Darren's own accounts unless noted. This page reads live from the tracker's backend — refresh any time for the latest numbers.";
 
-    categories.forEach(function(c, i){
-      var y = padT + rowH*i + rowH*0.18;
-      var h = rowH*0.64;
-      var w = Math.max(c.amount * scaleX, 2);
-      var hue = i < 3 ? ramp[i] : (ramp[i] === "--accent" ? accentHex : ramp[i]);
-      if (hue === "--accent") hue = accentHex;
-
-      var label = svg("text", {x: padL-10, y: y+h/2+4, class:"axis-label", "text-anchor":"end"});
-      label.style.fontSize = "12px";
-      label.style.fill = tok("--text-secondary");
-      label.textContent = c.name;
-      el.appendChild(label);
-
-      var rect = svg("rect", {x:padL, y:y, width:w, height:h, rx:3, fill:hue});
-      rect.style.cursor = "pointer";
-      el.appendChild(rect);
-      rect.addEventListener("mousemove", function(evt){
-        showTooltip(evt, '<div class="tt-title">'+c.name.replace("*","")+'</div><table><tr><td class="k">14-month total</td><td>'+money(c.amount)+'</td></tr></table>');
-      });
-      rect.addEventListener("mouseleave", hideTooltip);
-
-      var val = svg("text", {x: padL+w+8, y:y+h/2+4});
-      val.style.fontSize = "12px";
-      val.style.fontFamily = "'IBM Plex Mono', monospace";
-      val.style.fill = tok("--text-primary");
-      val.textContent = money(c.amount);
-      el.appendChild(val);
-    });
-  })();
-
-  // ---------------- chart: debt small multiples ----------------
-  function debtLine(id, data, cap) {
-    var el = document.getElementById(id);
-    var W = 540, H = 190, padL = 44, padR = 12, padT = 14, padB = 26;
-    var innerW = W - padL - padR, innerH = H - padT - padB;
-    var maxV = cap || Math.max.apply(null, data);
-    maxV = Math.ceil(maxV/100)*100;
-    var scaleY = innerH / maxV;
-    function yOf(v){ return padT + innerH - v*scaleY; }
-    var stepX = innerW / (data.length - 1);
-    function xOf(i){ return padL + stepX*i; }
-
-    [maxV, maxV/2, 0].forEach(function(v){
-      var y = yOf(v);
-      el.appendChild(svg("line", {x1:padL, x2:W-padR, y1:y, y2:y, class: v===0?"baseline-line":"grid-line"}));
-      var t = svg("text", {x:padL-8, y:y+3, class:"axis-label", "text-anchor":"end"});
-      t.textContent = "$"+v;
-      el.appendChild(t);
+    // ---------------- KPI row ----------------
+    var kpiRow = document.getElementById("kpi-row");
+    kpiRow.innerHTML = "";
+    kpis.forEach(function (k) {
+      var el = document.createElement("div");
+      el.className = "card kpi " + k.tone;
+      el.innerHTML =
+        '<div class="label">' + k.label + '</div>' +
+        '<div class="value">' + k.value + '</div>' +
+        '<div class="sub">' + k.sub + '</div>';
+      kpiRow.appendChild(el);
     });
 
-    var pts = data.map(function(v,i){ return [xOf(i), yOf(v)]; });
-    var path = "M" + pts.map(function(p){return p[0].toFixed(1)+","+p[1].toFixed(1);}).join(" L");
-    el.appendChild(svg("path", {d:path, fill:"none", stroke:tok("--accent"), "stroke-width":2, "stroke-linejoin":"round", "stroke-linecap":"round"}));
+    // ---------------- shared tooltip ----------------
+    var tooltip = document.getElementById("tooltip");
+    function showTooltip(evt, html) {
+      tooltip.innerHTML = html;
+      tooltip.style.left = evt.clientX + "px";
+      tooltip.style.top = evt.clientY + "px";
+      tooltip.style.opacity = "1";
+    }
+    function moveTooltip(evt) {
+      tooltip.style.left = evt.clientX + "px";
+      tooltip.style.top = evt.clientY + "px";
+    }
+    function hideTooltip() { tooltip.style.opacity = "0"; }
 
-    data.forEach(function(v, i){
-      var dot = svg("circle", {cx:pts[i][0], cy:pts[i][1], r:3, fill:tok("--accent"), stroke:tok("--surface-card"), "stroke-width":1.5});
-      dot.style.cursor = "pointer";
-      el.appendChild(dot);
-      dot.addEventListener("mousemove", function(evt){
-        showTooltip(evt, '<div class="tt-title">'+months[i]+'</div><table><tr><td class="k">Payment</td><td>'+money(v,true)+'</td></tr></table>');
+    // ---------------- chart: diverging bar (net by month) ----------------
+    (function () {
+      var el = document.getElementById("chart-net");
+      el.innerHTML = "";
+      var W = 620, H = 260, padL = 44, padR = 8, padT = 10, padB = 28;
+      var innerW = W - padL - padR, innerH = H - padT - padB;
+      var maxAbs = Math.max.apply(null, cashflow.map(function (c) { return Math.abs(c.net); }));
+      maxAbs = Math.ceil(maxAbs / 500) * 500 || 500;
+      var zeroY = padT + innerH / 2;
+      var scaleY = (innerH / 2) / maxAbs;
+      var bw = innerW / cashflow.length;
+      var barW = Math.min(28, bw * 0.6);
+
+      [maxAbs, maxAbs/2, 0, -maxAbs/2, -maxAbs].forEach(function (v) {
+        var y = zeroY - v * scaleY;
+        el.appendChild(svg("line", {x1:padL, x2:W-padR, y1:y, y2:y, class: v===0 ? "baseline-line":"grid-line"}));
+        var t = svg("text", {x:padL-8, y:y+3, class:"axis-label", "text-anchor":"end"});
+        t.textContent = v === 0 ? "$0" : (v>0?"+":"−")+"$"+Math.abs(v/1000).toFixed(v%1000===0?0:1)+"k";
+        el.appendChild(t);
       });
-      dot.addEventListener("mouseleave", hideTooltip);
-      if (i % 3 === 0) {
-        var lbl = svg("text", {x:pts[i][0], y:H-8, class:"axis-label", "text-anchor":"middle"});
-        lbl.textContent = months[i];
-        el.appendChild(lbl);
-      }
+
+      cashflow.forEach(function (c, i) {
+        var cx = padL + bw*i + bw/2;
+        var h = Math.abs(c.net) * scaleY;
+        var y = c.net >= 0 ? zeroY - h : zeroY;
+        var color = c.net >= 0 ? tok("--good") : tok("--critical");
+        var rect = svg("rect", {x: cx-barW/2, y:y, width:barW, height:Math.max(h,1.5), rx:3, fill:color, opacity:0.92});
+        rect.style.cursor = "pointer";
+        el.appendChild(rect);
+
+        rect.addEventListener("mousemove", function (evt) {
+          showTooltip(evt,
+            '<div class="tt-title">'+c.m+'</div>' +
+            '<table>' +
+            '<tr><td class="k">Income</td><td>'+money(c.income)+'</td></tr>' +
+            '<tr><td class="k">Outgoing</td><td>'+money(c.outgoing)+'</td></tr>' +
+            '<tr><td class="k">Net</td><td>'+signed(c.net)+'</td></tr>' +
+            '</table>');
+        });
+        rect.addEventListener("mouseleave", hideTooltip);
+
+        if (i % 2 === 0 || cashflow.length <= 8) {
+          var lbl = svg("text", {x:cx, y:H-8, class:"axis-label", "text-anchor":"middle"});
+          lbl.textContent = c.m;
+          el.appendChild(lbl);
+        }
+      });
+    })();
+
+    // ---------------- chart: balance trend line ----------------
+    (function () {
+      var el = document.getElementById("chart-balance");
+      el.innerHTML = "";
+      var W = 560, H = 260, padL = 44, padR = 12, padT = 14, padB = 28;
+      var innerW = W - padL - padR, innerH = H - padT - padB;
+      var maxV = Math.max.apply(null, cashflow.map(function (c) { return c.balance; }));
+      var minV = Math.min(0, Math.min.apply(null, cashflow.map(function (c) { return c.balance; })));
+      maxV = Math.ceil(maxV/500)*500 || 500;
+      minV = Math.floor(minV/500)*500;
+      var scaleY = innerH / (maxV - minV);
+      function yOf(v) { return padT + innerH - (v - minV) * scaleY; }
+      var stepX = innerW / Math.max(cashflow.length - 1, 1);
+      function xOf(i) { return padL + stepX*i; }
+
+      [maxV, maxV/2, 0].forEach(function (v) {
+        var y = yOf(v);
+        el.appendChild(svg("line", {x1:padL, x2:W-padR, y1:y, y2:y, class: v===0 ? "baseline-line":"grid-line"}));
+        var t = svg("text", {x:padL-8, y:y+3, class:"axis-label", "text-anchor":"end"});
+        t.textContent = "$"+(v/1000).toFixed(v!==0 && Math.abs(v)<1000?1:0)+(v!==0?"k":"");
+        el.appendChild(t);
+      });
+
+      var pts = cashflow.map(function (c, i) { return [xOf(i), yOf(c.balance)]; });
+      var path = "M" + pts.map(function (p) { return p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" L");
+      el.appendChild(svg("path", {d:path, fill:"none", stroke:tok("--accent"), "stroke-width":2, "stroke-linejoin":"round", "stroke-linecap":"round"}));
+
+      cashflow.forEach(function (c, i) {
+        var isNeg = !!negByMonth[c.m];
+        var r = isNeg ? 5 : 3;
+        var color = isNeg ? tok("--critical") : tok("--accent");
+        var dot = svg("circle", {cx:pts[i][0], cy:pts[i][1], r:r, fill:color, stroke:tok("--surface-card"), "stroke-width":1.5});
+        dot.style.cursor = "pointer";
+        el.appendChild(dot);
+        dot.addEventListener("mousemove", function (evt) {
+          var extra = "";
+          if (isNeg) {
+            var n = negByMonth[c.m];
+            extra = '<tr><td class="k">Overdrawn</td><td>'+n.days+' day'+(n.days>1?'s':'')+', '+n.txns+' txns</td></tr>' +
+                    '<tr><td class="k">Lowest</td><td>'+signed(n.min,true)+'</td></tr>';
+          }
+          showTooltip(evt,
+            '<div class="tt-title">'+c.m+'</div>' +
+            '<table><tr><td class="k">Balance</td><td>'+money(c.balance,true)+'</td></tr>'+extra+'</table>');
+        });
+        dot.addEventListener("mouseleave", hideTooltip);
+        if (i % 2 === 0) {
+          var lbl = svg("text", {x:pts[i][0], y:H-8, class:"axis-label", "text-anchor":"middle"});
+          lbl.textContent = c.m;
+          el.appendChild(lbl);
+        }
+      });
+    })();
+
+    // ---------------- chart: category horizontal bars ----------------
+    (function () {
+      var el = document.getElementById("chart-categories");
+      el.innerHTML = "";
+      if (!categories.length) return;
+      var W = 1100, H = Math.max(120, categories.length * 34), padL = 190, padR = 90, padT = 10, padB = 10;
+      el.setAttribute("viewBox", "0 0 " + W + " " + H);
+      var innerW = W - padL - padR;
+      var rowH = (H - padT - padB) / categories.length;
+      var maxV = Math.max.apply(null, categories.map(function (c) { return c.amount; }));
+      var scaleX = innerW / maxV;
+
+      var ramp = ["#0d366b","#104281","#184f95","--accent","#3987e5","#5598e7","#6da7ec","#86b6ef","#9ec5f4","#b7d3f6"];
+      var accentHex = tok("--accent");
+
+      categories.forEach(function (c, i) {
+        var y = padT + rowH*i + rowH*0.18;
+        var h = rowH*0.64;
+        var w = Math.max(c.amount * scaleX, 2);
+        var hue = i < ramp.length ? ramp[i] : accentHex;
+        if (hue === "--accent") hue = accentHex;
+
+        var label = svg("text", {x: padL-10, y: y+h/2+4, class:"axis-label", "text-anchor":"end"});
+        label.style.fontSize = "12px";
+        label.style.fill = tok("--text-secondary");
+        label.textContent = c.name;
+        el.appendChild(label);
+
+        var rect = svg("rect", {x:padL, y:y, width:w, height:h, rx:3, fill:hue});
+        rect.style.cursor = "pointer";
+        el.appendChild(rect);
+        rect.addEventListener("mousemove", function (evt) {
+          showTooltip(evt, '<div class="tt-title">'+c.name.replace("*","")+'</div><table><tr><td class="k">14-month total</td><td>'+money(c.amount)+'</td></tr></table>');
+        });
+        rect.addEventListener("mouseleave", hideTooltip);
+
+        var val = svg("text", {x: padL+w+8, y:y+h/2+4});
+        val.style.fontSize = "12px";
+        val.style.fontFamily = "'IBM Plex Mono', monospace";
+        val.style.fill = tok("--text-primary");
+        val.textContent = money(c.amount);
+        el.appendChild(val);
+      });
+    })();
+
+    // ---------------- chart: debt small multiples ----------------
+    function debtLine(id, seriesData, cap) {
+      var el = document.getElementById(id);
+      el.innerHTML = "";
+      if (!seriesData.length) return;
+      var W = 540, H = 190, padL = 44, padR = 12, padT = 14, padB = 26;
+      var innerW = W - padL - padR, innerH = H - padT - padB;
+      var maxV = cap || Math.max.apply(null, seriesData);
+      maxV = Math.ceil(maxV/100)*100 || 100;
+      var scaleY = innerH / maxV;
+      function yOf(v) { return padT + innerH - v*scaleY; }
+      var stepX = innerW / Math.max(seriesData.length - 1, 1);
+      function xOf(i) { return padL + stepX*i; }
+
+      [maxV, maxV/2, 0].forEach(function (v) {
+        var y = yOf(v);
+        el.appendChild(svg("line", {x1:padL, x2:W-padR, y1:y, y2:y, class: v===0?"baseline-line":"grid-line"}));
+        var t = svg("text", {x:padL-8, y:y+3, class:"axis-label", "text-anchor":"end"});
+        t.textContent = "$"+v;
+        el.appendChild(t);
+      });
+
+      var pts = seriesData.map(function (v, i) { return [xOf(i), yOf(v)]; });
+      var path = "M" + pts.map(function (p) { return p[0].toFixed(1)+","+p[1].toFixed(1); }).join(" L");
+      el.appendChild(svg("path", {d:path, fill:"none", stroke:tok("--accent"), "stroke-width":2, "stroke-linejoin":"round", "stroke-linecap":"round"}));
+
+      seriesData.forEach(function (v, i) {
+        var dot = svg("circle", {cx:pts[i][0], cy:pts[i][1], r:3, fill:tok("--accent"), stroke:tok("--surface-card"), "stroke-width":1.5});
+        dot.style.cursor = "pointer";
+        el.appendChild(dot);
+        dot.addEventListener("mousemove", function (evt) {
+          showTooltip(evt, '<div class="tt-title">'+(months[i]||"")+'</div><table><tr><td class="k">Payment</td><td>'+money(v,true)+'</td></tr></table>');
+        });
+        dot.addEventListener("mouseleave", hideTooltip);
+        if (i % 3 === 0) {
+          var lbl = svg("text", {x:pts[i][0], y:H-8, class:"axis-label", "text-anchor":"middle"});
+          lbl.textContent = months[i] || "";
+          el.appendChild(lbl);
+        }
+      });
+    }
+    debtLine("chart-latitude", latitude);
+    debtLine("chart-car", car, 720);
+
+    // ---------------- findings cards ----------------
+    var sevMeta = {
+      critical: {label:"Critical", color:"critical", icon:'<svg viewBox="0 0 16 16" fill="none"><path d="M8 1l7 13H1L8 1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.2v3.2M8 11.4h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>'},
+      watch:    {label:"Watch",    color:"watch",    icon:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.3" stroke="currentColor" stroke-width="1.4"/><path d="M8 5v3.4M8 11h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>'},
+      positive: {label:"Positive", color:"positive", icon:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.3" stroke="currentColor" stroke-width="1.4"/><path d="M5.3 8.2l1.8 1.8 3.6-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'}
+    };
+
+    var grid = document.getElementById("findings-grid");
+    grid.innerHTML = "";
+    findings.forEach(function (f) {
+      var meta = sevMeta[f.sev] || sevMeta.watch;
+      var card = document.createElement("div");
+      card.className = "finding sev-" + f.sev;
+      card.innerHTML =
+        '<div class="f-top">' +
+          '<div class="f-title">'+f.title+'</div>' +
+          '<span class="pill sev-'+f.sev+'">'+meta.icon+meta.label+'</span>' +
+        '</div>' +
+        '<div class="f-detail">'+f.detail+'</div>' +
+        '<div class="f-tags"><span class="tag">'+f.cat+'</span><span class="tag">'+f.status+'</span></div>';
+      grid.appendChild(card);
+    });
+
+    // shared mousemove to keep tooltip near cursor
+    document.addEventListener("mousemove", function (evt) {
+      if (tooltip.style.opacity === "1") moveTooltip(evt);
     });
   }
-  debtLine("chart-latitude", latitude);
-  debtLine("chart-car", car, 720);
-
-  // ---------------- findings cards ----------------
-  var sevMeta = {
-    critical: {label:"Critical", color:"critical", icon:'<svg viewBox="0 0 16 16" fill="none"><path d="M8 1l7 13H1L8 1z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6.2v3.2M8 11.4h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>'},
-    watch:    {label:"Watch",    color:"watch",    icon:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.3" stroke="currentColor" stroke-width="1.4"/><path d="M8 5v3.4M8 11h.01" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>'},
-    positive: {label:"Positive", color:"positive", icon:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.3" stroke="currentColor" stroke-width="1.4"/><path d="M5.3 8.2l1.8 1.8 3.6-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'}
-  };
-
-  var grid = document.getElementById("findings-grid");
-  findings.forEach(function(f){
-    var meta = sevMeta[f.sev];
-    var card = document.createElement("div");
-    card.className = "finding sev-" + f.sev;
-    card.innerHTML =
-      '<div class="f-top">' +
-        '<div class="f-title">'+f.title+'</div>' +
-        '<span class="pill sev-'+f.sev+'">'+meta.icon+meta.label+'</span>' +
-      '</div>' +
-      '<div class="f-detail">'+f.detail+'</div>' +
-      '<div class="f-tags"><span class="tag">'+f.cat+'</span><span class="tag">'+f.status+'</span></div>';
-    grid.appendChild(card);
-  });
-
-  // shared mousemove to keep tooltip near cursor
-  document.addEventListener("mousemove", function(evt){
-    if (tooltip.style.opacity === "1") moveTooltip(evt);
-  });
 })();
 </script>
 
